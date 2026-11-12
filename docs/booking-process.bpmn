@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_Booking" targetNamespace="http://example.com/bpmn">
+  <bpmn:collaboration id="Collaboration_Booking">
+    <bpmn:participant id="Participant_Booking" name="Бронирование переговорной" processRef="Process_Booking" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_Booking" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_Employee" name="Сотрудник">
+        <bpmn:flowNodeRef>Start_Need</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Fill</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_System" name="Система бронирования">
+        <bpmn:flowNodeRef>Task_Validate</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GW_Valid</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Overlaps</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GW_Free</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Create</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GW_Saved</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_Ok</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_Invalid</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_Busy</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_Conflict</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="Start_Need" name="Нужна переговорная">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="Task_Fill" name="Выбрать комнату, дату и время, отправить заявку">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Task_Validate" name="Проверить данные заявки">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="GW_Valid" name="Данные корректны?">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="Task_Overlaps" name="Найти брони, пересекающиеся по времени">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="GW_Free" name="Комната свободна?">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="Task_Create" name="Создать бронь в транзакции">
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_9</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="GW_Saved" name="Бронь сохранена без конфликта?">
+      <bpmn:incoming>Flow_9</bpmn:incoming>
+      <bpmn:outgoing>Flow_10</bpmn:outgoing>
+      <bpmn:outgoing>Flow_11</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="End_Ok" name="Бронь подтверждена, сотрудник уведомлён">
+      <bpmn:incoming>Flow_10</bpmn:incoming>
+      <bpmn:messageEventDefinition id="Msg_End_Ok" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="End_Invalid" name="Отклонено: ошибка в данных">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:messageEventDefinition id="Msg_End_Invalid" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="End_Busy" name="Отклонено: комната занята">
+      <bpmn:incoming>Flow_8</bpmn:incoming>
+      <bpmn:messageEventDefinition id="Msg_End_Busy" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="End_Conflict" name="Отклонено: комнату заняли одновременно">
+      <bpmn:incoming>Flow_11</bpmn:incoming>
+      <bpmn:messageEventDefinition id="Msg_End_Conflict" />
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="Start_Need" targetRef="Task_Fill" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_Fill" targetRef="Task_Validate" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_Validate" targetRef="GW_Valid" />
+    <bpmn:sequenceFlow id="Flow_4" name="Да" sourceRef="GW_Valid" targetRef="Task_Overlaps" />
+    <bpmn:sequenceFlow id="Flow_5" name="Нет" sourceRef="GW_Valid" targetRef="End_Invalid" />
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_Overlaps" targetRef="GW_Free" />
+    <bpmn:sequenceFlow id="Flow_7" name="Да" sourceRef="GW_Free" targetRef="Task_Create" />
+    <bpmn:sequenceFlow id="Flow_8" name="Нет" sourceRef="GW_Free" targetRef="End_Busy" />
+    <bpmn:sequenceFlow id="Flow_9" sourceRef="Task_Create" targetRef="GW_Saved" />
+    <bpmn:sequenceFlow id="Flow_10" name="Да" sourceRef="GW_Saved" targetRef="End_Ok" />
+    <bpmn:sequenceFlow id="Flow_11" name="Нет" sourceRef="GW_Saved" targetRef="End_Conflict" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_Booking">
+      <bpmndi:BPMNShape id="Participant_Booking_di" bpmnElement="Participant_Booking" isHorizontal="true"><dc:Bounds x="40" y="40" width="1100" height="500" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Employee_di" bpmnElement="Lane_Employee" isHorizontal="true"><dc:Bounds x="70" y="40" width="1070" height="130" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_System_di" bpmnElement="Lane_System" isHorizontal="true"><dc:Bounds x="70" y="170" width="1070" height="370" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_Need_di" bpmnElement="Start_Need"><dc:Bounds x="147" y="87" width="36" height="36" /><bpmndi:BPMNLabel><dc:Bounds x="110" y="127" width="110" height="32" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Fill_di" bpmnElement="Task_Fill"><dc:Bounds x="220" y="65" width="120" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Validate_di" bpmnElement="Task_Validate"><dc:Bounds x="220" y="220" width="120" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_Valid_di" bpmnElement="GW_Valid" isMarkerVisible="true"><dc:Bounds x="385" y="235" width="50" height="50" /><bpmndi:BPMNLabel><dc:Bounds x="345" y="212" width="130" height="18" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Overlaps_di" bpmnElement="Task_Overlaps"><dc:Bounds x="490" y="220" width="120" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_Free_di" bpmnElement="GW_Free" isMarkerVisible="true"><dc:Bounds x="655" y="235" width="50" height="50" /><bpmndi:BPMNLabel><dc:Bounds x="615" y="212" width="130" height="18" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Create_di" bpmnElement="Task_Create"><dc:Bounds x="760" y="220" width="120" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_Saved_di" bpmnElement="GW_Saved" isMarkerVisible="true"><dc:Bounds x="925" y="235" width="50" height="50" /><bpmndi:BPMNLabel><dc:Bounds x="885" y="198" width="130" height="32" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Ok_di" bpmnElement="End_Ok"><dc:Bounds x="1042" y="242" width="36" height="36" /><bpmndi:BPMNLabel><dc:Bounds x="990" y="282" width="140" height="32" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Invalid_di" bpmnElement="End_Invalid"><dc:Bounds x="392" y="422" width="36" height="36" /><bpmndi:BPMNLabel><dc:Bounds x="340" y="462" width="140" height="32" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Busy_di" bpmnElement="End_Busy"><dc:Bounds x="662" y="422" width="36" height="36" /><bpmndi:BPMNLabel><dc:Bounds x="610" y="462" width="140" height="32" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Conflict_di" bpmnElement="End_Conflict"><dc:Bounds x="932" y="422" width="36" height="36" /><bpmndi:BPMNLabel><dc:Bounds x="880" y="462" width="140" height="32" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="183" y="105" />
+        <di:waypoint x="220" y="105" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="280" y="145" />
+        <di:waypoint x="280" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="340" y="260" />
+        <di:waypoint x="385" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="435" y="260" />
+        <di:waypoint x="490" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="410" y="285" />
+        <di:waypoint x="410" y="422" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="610" y="260" />
+        <di:waypoint x="655" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <di:waypoint x="705" y="260" />
+        <di:waypoint x="760" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8">
+        <di:waypoint x="680" y="285" />
+        <di:waypoint x="680" y="422" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_9_di" bpmnElement="Flow_9">
+        <di:waypoint x="880" y="260" />
+        <di:waypoint x="925" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10">
+        <di:waypoint x="975" y="260" />
+        <di:waypoint x="1042" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_11_di" bpmnElement="Flow_11">
+        <di:waypoint x="950" y="285" />
+        <di:waypoint x="950" y="422" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
